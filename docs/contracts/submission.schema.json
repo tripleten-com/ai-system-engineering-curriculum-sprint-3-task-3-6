@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$comment": "Coldline Task 3.6 public answer contract. This Task has no useful direct answer: the deliverables are the student-written docs/student/runbook.md, the ECS fidelity section added to docs/fidelity/JobQueue.md, and the observed recovery of the supplied pipeline in the development failure lab and the one isolated held-out scenario. The automated checks read those files and the running application rather than a recorded claim. The mapping is required and must be empty, so an invented status or self-reported test result is rejected rather than accepted as evidence.",
+  "title": "Coldline Task 3.6 answers",
+  "description": "An intentionally empty answer mapping.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["answers"],
+  "properties": {
+    "answers": {
+      "description": "Empty by design. Add no field: the runbook, the fidelity record, and the observed recovery are the evidence.",
+      "type": "object",
+      "additionalProperties": false,
+      "maxProperties": 0
+    }
+  }
+}

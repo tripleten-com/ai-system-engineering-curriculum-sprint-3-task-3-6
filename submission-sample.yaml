@@ -1,0 +1,22 @@
+# Coldline - Task 3.6
+# File: submission-sample.yaml
+# Component: Fictional completed answer sheet
+# Purpose: Show the accepted shape.
+# Interacts With: docs/contracts/submission.schema.json
+# Sprint/Task: Sprint 3 - Project 3 / Task 3.6
+# Concepts: Answer-sheet shape
+# Tools: YAML
+
+# Keep answers: {} in submission.yaml; the sample shows the same empty mapping.
+# Complete the work described in the Task contract.
+# Do not include secrets, personal data, or local absolute paths.
+
+# Task 3.6 — Failure lab and held-out check
+# Run `poe dev-failure-lab` against your live stack, write
+# docs/student/runbook.md with its four required sections, and add the
+# required ECS fidelity section to docs/fidelity/JobQueue.md.
+# Source: docs/student/task-3-6-contract.md.
+# Your runbook, your fidelity record, and the running checks provide the
+# evidence for this Task. Keep this mapping empty; this Task has no
+# direct-answer fields to complete.
+answers: {}

@@ -1,0 +1,95 @@
+# Coldline - Task 3.6
+# File: .github/workflows/task.yml
+# Component: Published Task CI
+# Purpose: Run the student-visible verification contract on pull requests.
+# Interacts With: uv, Poe, Docker Compose
+# Sprint/Task: Sprint 3 - Project 3 / Task 3.6
+# Concepts: Deterministic assessment, failure lab, held-out check
+# Tools: GitHub Actions
+
+name: Task 3.6 verification
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    # This is the STUDENT contract: on a fresh opening checkpoint it is supposed to fail, and a
+    # student makes it pass. Export PRs regenerate the whole template, so running it there only
+    # produced permanent red that masked real regressions. template-integrity.yml covers those
+    # branches instead.
+    if: >-
+      !startsWith(github.head_ref, 'export/')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Check out the repository
+        # actions/checkout v4.2.2
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          fetch-depth: 0
+      - name: Set up Python 3.12
+        # actions/setup-python v6.0.0
+        uses: actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c
+        with:
+          python-version: "3.12"
+      - name: Install pinned tooling
+        run: |
+          python infra/scripts/bootstrap.py
+          python infra/scripts/preflight.py
+          echo "$PWD/.tools/bin" >> "$GITHUB_PATH"
+          .tools/bin/uv sync --frozen
+      # Task 3.6's own check is static: it reads docs/student/runbook.md and
+      # docs/fidelity/JobQueue.md and needs no running stack, so it runs first and fails fast.
+      # `poe verify` below repeats it alongside the inherited runtime checks. The failure lab
+      # itself (`poe dev-failure-lab`) is a student-run exercise against a live stack, exactly
+      # like Task 3.3's and Task 3.4's exercise scripts, and is deliberately not a CI step.
+      - name: Check the runbook and fidelity record
+        run: .tools/bin/uv run --frozen poe runbook-contract
+      - name: Start the pinned runtime
+        run: .tools/bin/uv run --frozen poe start
+      - name: Ingest the supplied corpus
+        run: .tools/bin/uv run --frozen poe ingest
+      - name: Verify the public contract
+        run: .tools/bin/uv run --frozen poe verify
+      - name: Stop the runtime
+        if: always()
+        run: .tools/bin/uv run --frozen poe reset
+
+  # Task 3.5's own settled reliability gate, carried forward unchanged: its one step runs
+  # `poe queue-contract`, Task 3.3's automated check for the deployed dead-letter redrive
+  # budget. This job is supplied in Task 3.6, not assessed here, and .github/workflows/task.yml
+  # is no longer student-editable: keep this whole file exactly as supplied.
+  reliability-gate:
+    if: >-
+      !startsWith(github.head_ref, 'export/')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Check out the repository
+        # actions/checkout v4.2.2
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          fetch-depth: 0
+      - name: Set up Python 3.12
+        # actions/setup-python v6.0.0
+        uses: actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c
+        with:
+          python-version: "3.12"
+      - name: Install pinned tooling
+        run: |
+          python infra/scripts/bootstrap.py
+          python infra/scripts/preflight.py
+          echo "$PWD/.tools/bin" >> "$GITHUB_PATH"
+          .tools/bin/uv sync --frozen
+      - name: Start the pinned runtime
+        run: .tools/bin/uv run --frozen poe start
+      - name: Run the reliability check
+        run: .tools/bin/uv run --frozen poe queue-contract
+      - name: Stop the runtime
+        if: always()
+        run: .tools/bin/uv run --frozen poe reset
