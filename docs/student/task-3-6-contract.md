@@ -139,15 +139,23 @@ it had to redrive, every exception's terminal state, both final depths, and the 
 code `0` means every reading reached `COMPLETED` and both depths are zero. Keep the blob; your
 runbook's Verification section should be able to point at it.
 
-While it runs, watch the queue from the other side: Prometheus's `coldline_job_queue_stream_length`
-and `coldline_job_queue_dead_letter_depth` (remember both gauges are reported by the worker itself,
-so they go quiet while the worker is stopped — that silence is a signal too), and the Alertmanager
-API. The Grafana diagnostics dashboard's own queue panel plots `coldline_job_queue_pending_messages`
-instead — in-flight, received-but-not-yet-acknowledged messages — which stays flat at zero for this
-exact fault, since nothing is being received while the worker is down; query
-`coldline_job_queue_stream_length` directly in Prometheus (or Grafana's Explore view) for a live
-backlog chart. `poe inject-failure` and `poe redrive` from Task 3.3 remain available if you want to
-contrast a real dead-letter arrival with this lab's backlog.
+While it runs, watch the queue from the other side — and notice that for this particular fault, the
+most useful observability signals are absences. `coldline_job_queue_stream_length` and
+`coldline_job_queue_dead_letter_depth` are both reported by the worker itself, so they go quiet
+while the worker is stopped — that silence is a signal too. It also means **no Prometheus series
+can show you this backlog**: the only thing that publishes queue depth is the service you just
+stopped, so Prometheus has nothing to scrape for the whole outage and the five queued messages
+never appear in it at all. Do not go looking for a rising depth line; look for the hole. What
+Prometheus *does* show is the scrape gap itself in those two gauges, and `up{job="coldline-worker"}
+== 0` for exactly the length of the outage. The Grafana diagnostics dashboard's own queue panel
+plots `coldline_job_queue_pending_messages` instead — in-flight, received-but-not-yet-acknowledged
+messages — which stays flat at zero for this exact fault, since nothing is being received while the
+worker is down. The real depth is only visible from *outside* the worker, by asking the queue
+itself for `ApproximateNumberOfMessages`; that is exactly what `poe dev-failure-lab` does host-side,
+so the main-queue and dead-letter depths it prints while the worker is stopped are that outside
+reading. The Alertmanager API is worth watching too, for what does *not* fire. `poe inject-failure`
+and `poe redrive` from Task 3.3 remain available if you want to contrast a real dead-letter arrival
+with this lab's backlog.
 
 ## Commands
 
