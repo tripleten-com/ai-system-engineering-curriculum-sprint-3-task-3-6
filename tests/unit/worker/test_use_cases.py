@@ -215,6 +215,7 @@ async def test_third_provider_failure_is_recorded_and_acknowledged() -> None:
     assert repository.record.failure_reason == "model_provider_exhausted"
 
 
+@pytest.mark.assessed
 @pytest.mark.asyncio
 async def test_terminal_provider_failure_is_recorded_on_the_first_delivery() -> None:
     """A terminal failure must not wait for the retryable-exhaustion budget."""
@@ -230,6 +231,7 @@ async def test_terminal_provider_failure_is_recorded_on_the_first_delivery() -> 
     assert provider.calls == 1
 
 
+@pytest.mark.assessed
 @pytest.mark.asyncio
 async def test_terminal_provider_failure_at_the_final_delivery_is_still_distinct() -> None:
     """Even at the last delivery, a terminal outcome keeps its own failure reason.
