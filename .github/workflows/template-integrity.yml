@@ -55,7 +55,8 @@ jobs:
           python infra/scripts/preflight.py
           echo "$PWD/.tools/bin" >> "$GITHUB_PATH"
           .tools/bin/uv sync --frozen
-      # This mirrors `poe author-verify` step for step, with one deliberate exclusion.
+      # This mirrors `poe author-verify` with its configured unit command and one
+      # deliberate exclusion: the submission boundary cannot apply to an export refresh.
       #
       # Sprint 1 Tasks 1.4-1.6 and every Sprint 2 Task carry a student-submission boundary test
       # inside `poe contract` (`test_submission_change_stays_within_the_permitted_diff`). It
@@ -71,7 +72,8 @@ jobs:
           .tools/bin/uv run --frozen poe format-check
           .tools/bin/uv run --frozen poe lint
           .tools/bin/uv run --frozen poe typecheck
-          .tools/bin/uv run --frozen poe unit
+          unit_task=$(.tools/bin/uv run --frozen python -c 'import tomllib; tasks = tomllib.load(open("pyproject.toml", "rb"))["tool"]["poe"]["tasks"]; print(next(name for name in tasks["author-verify"] if name in {"unit", "unit-static"}))')
+          .tools/bin/uv run --frozen poe "$unit_task"
           .tools/bin/uv run --frozen pytest tests/contract -m 'not runtime and not assessed and not submission_boundary'
           .tools/bin/uv run --frozen poe structure
           .tools/bin/uv run --frozen poe compose-config
