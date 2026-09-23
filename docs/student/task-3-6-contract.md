@@ -30,7 +30,8 @@ protected job you do not run and cannot see the parameters of: a bounded depende
 than a consumer outage. It uses the same fault controls (`docker compose stop`/`start` on one
 service) and the same evidence shape (queue depth, dead-letter depth, per-exception terminal
 state, an idempotent-replay check) as the lab. It grades the **supplied** pipeline — the
-idempotent worker, the SQS visibility timeout and redrive policy you configured in Task 3.3 —
+idempotent worker, the SQS visibility timeout and redrive policy supplied as verified values
+from the Task 3.3 checkpoint in this repository —
 not your runbook. Its procedure is public and readable at `tests/contract/held_out_review.py`;
 only its input is protected. A submission that changes the supplied system is refused rather
 than graded.
@@ -139,21 +140,28 @@ it had to redrive, every exception's terminal state, both final depths, and the 
 code `0` means every reading reached `COMPLETED` and both depths are zero. Keep the blob; your
 runbook's Verification section should be able to point at it.
 
-While it runs, watch the queue from the other side — and notice that for this particular fault, the
-most useful observability signals are absences. `coldline_job_queue_stream_length` and
-`coldline_job_queue_dead_letter_depth` are both reported by the worker itself, so they go quiet
-while the worker is stopped — that silence is a signal too. It also means **no Prometheus series
-can show you this backlog**: the only thing that publishes queue depth is the service you just
-stopped, so Prometheus has nothing to scrape for the whole outage and the five queued messages
-never appear in it at all. Do not go looking for a rising depth line; look for the hole. What
-Prometheus *does* show is the scrape gap itself in those two gauges, and `up{job="coldline-worker"}
-== 0` for exactly the length of the outage. The Grafana diagnostics dashboard's own queue panel
-plots `coldline_job_queue_pending_messages` instead — in-flight, received-but-not-yet-acknowledged
-messages — which stays flat at zero for this exact fault, since nothing is being received while the
-worker is down. The real depth is only visible from *outside* the worker, by asking the queue
-itself for `ApproximateNumberOfMessages`; that is exactly what `poe dev-failure-lab` does host-side,
-so the main-queue and dead-letter depths it prints while the worker is stopped are that outside
-reading. The Alertmanager API is worth watching too, for what does *not* fire. `poe inject-failure`
+While it runs, query the queue directly and watch for gaps in monitoring.
+`coldline_job_queue_stream_length`, `coldline_job_queue_dead_letter_depth`, and
+`coldline_job_queue_pending_messages` are reported by the worker itself. Prometheus cannot
+collect fresh samples from them while the worker is stopped. A missing sample is not a
+measurement of zero; an earlier value may remain visible until Prometheus marks it stale.
+`up{job="coldline-worker"} == 0` records failed scrapes. Its visible gap need not match the
+script's ten-second pause: dependency startup and the timing of scrapes also affect when
+metrics disappear and return.
+
+The Grafana diagnostics dashboard's queue panel plots `coldline_job_queue_pending_messages`:
+in-flight messages that have been received but not yet acknowledged, not the full waiting
+backlog. This gauge may have no fresh samples during the outage and may become nonzero as
+the worker drains messages after restarting. Queue-depth samples may also appear during
+recovery; do not assume the five queued messages can never appear in Prometheus.
+
+For the waiting backlog while the worker is down, ask the queue itself for
+`ApproximateNumberOfMessages`. That is what `poe dev-failure-lab` does from the host, so its
+printed main-queue and dead-letter depths are readings taken independently of the worker.
+Have your query or polling loop ready in a second terminal before starting the lab. Keep
+temporary observation scripts outside the repository working tree unless they are permitted new student
+tests under `tests/student/`. The Alertmanager API is worth watching too, for what does
+*not* fire. `poe inject-failure`
 and `poe redrive` from Task 3.3 remain available if you want to contrast a real dead-letter arrival
 with this lab's backlog.
 
