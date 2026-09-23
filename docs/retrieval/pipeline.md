@@ -21,7 +21,12 @@ query text + caller --> | authorization                |  resolve one AccessCons
                         +---------------+--------------+
                                         |  top_k candidates + per-stage evidence
                         +---------------v--------------+
-                        | context assembly             |  dedupe by document, trim, cite
+                        | retrieval orchestration      |  dedupe by document, cap at citation limit
+                        | api/retrieval_workflow.py    |
+                        +---------------+--------------+
+                                        |  selected candidates
+                        +---------------v--------------+
+                        | context assembly             |  trim to token budget, format, cite
                         | api/retrieval_workflow.py    |
                         +------------------------------+
 ```
