@@ -216,7 +216,7 @@ Everything else in this repository is supplied.
 
 ### Student walkthrough
 
-See **Task 6: Failure lab and runbook** in your course platform for the full walkthrough. In
+See **Task 6: Failure lab and held-out check** in your course platform for the full walkthrough. In
 outline: read `docs/student/task-3-6-contract.md`, run `poe dev-failure-lab` against the live
 stack while watching the queue, the dashboard, and the exception records, write
 `docs/student/runbook.md` with its four required sections, add the `## ECS fidelity limits

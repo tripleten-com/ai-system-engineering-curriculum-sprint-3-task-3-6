@@ -184,7 +184,8 @@ redrive = "python -m tests.failure.redrive_and_verify"
 # exactly like Task 3.3's own exercise; `trigger-alert-load` forces one
 # exception to the dead-letter queue and restarts the worker itself once it
 # has arrived, then waits for the alert to fire. `verify-alert-recovery` then
-# redrives it and waits for both the exception and the alert to recover.
+# redrives every dead-lettered message and waits for the exceptions and the
+# alert to recover.
 trigger-alert-load = "python -m tests.failure.trigger_alert_load"
 verify-alert-recovery = "python -m tests.failure.verify_alert_recovery"
 # Task 3.6's own student-facing failure lab. Stops the worker for a bounded window,
