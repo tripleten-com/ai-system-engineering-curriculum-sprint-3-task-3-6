@@ -29,43 +29,38 @@ queue, not only against its own throwaway exercise queue.
 
 ## ECS fidelity limits (Task 3.6)
 
-Task 3.6's failure lab took the `worker` away with `docker compose stop worker`, let five readings
-build a backlog on `coldline-exception-jobs`, and brought it back with `docker compose start
-worker`. Recovery was complete: all five exceptions reached `COMPLETED`, both depths returned to
-zero, and `recovery_seconds` was 6.3. That is evidence about *this* container on *this* host. It is
-not evidence about the same worker running as an Amazon ECS service, for the following reasons.
+<!--
+Coldline - Task 3.6
+Private qualification fixture: Task 3.3's record, unchanged above, plus the completed ECS
+section a student writes after running `poe dev-failure-lab`. Codes ECS-01..ECS-04 are the
+ones `poe fidelity-check` requires; ECS-05 shows that further codes are welcome.
+-->
 
-- ECS-01: Compose scheduled one `worker` container on one Docker host, with the image already local
-  and no placement decision to make; the run therefore shows nothing about how an ECS cluster
-  chooses an instance for a replacement task, how placement strategies and constraints spread or
-  bin-pack tasks across an Availability Zone, or whether a capacity provider would have had room to
-  place the task at all — a cluster with no free CPU or memory reservation would simply leave the
-  task `PROVISIONING` and the backlog would keep growing, which is a failure mode this stack cannot
-  produce.
-- ECS-02: The worker came back only because the lab script issued `docker compose start worker`; an
-  operator action stood in for a scheduler. Compose has no desired count and never noticed the
-  container was gone. An ECS service scheduler detects a stopped or failed task against its desired
-  count and replaces it on its own, with its own detection interval, task-launch latency, image
-  pull, and restart backoff after repeated failures — none of which I observed or measured. My 19–20
-  second `up{job="coldline-worker"} == 0` gap is the length of a scripted pause plus a restart, not
-  a measurement of ECS mean time to replacement.
-- ECS-03: The backlog was five messages and one consumer, and it drained in seconds, so nothing in
-  this run exercised scale-out. ECS Service Auto Scaling driven by a queue-depth target-tracking or
-  step-scaling policy on `ApproximateNumberOfMessages` (or backlog-per-task) was never configured,
-  never triggered, and never measured; how many concurrent worker tasks would be needed to drain a
-  real peak-season backlog within the dispatcher's tolerance, and how long a scale-out would take to
-  become effective, remain unproven. The run also says nothing about whether multiple concurrent
-  consumers would still produce exactly one summary per reading at that scale, since only one
-  consumer ever ran.
-- ECS-04: `poe start` uses Compose's own `healthcheck` and `--wait`, which only gate the local
-  startup sequence. They are not an ECS health-check grace period, and there is no load balancer in
-  this topology at all: the worker is scraped directly at `worker:9100`. So this run establishes
-  nothing about an ALB or NLB target-group health check marking a task healthy or unhealthy, about a
-  grace period suppressing those checks while a task warms up, or about deregistration delay
-  draining in-flight work from a task being replaced — the local equivalent of that draining is only
-  SQS's own 30 s visibility timeout returning an unacknowledged message, which is a different
-  mechanism.
+The development failure lab stops and starts one Compose `worker` container on one host, and the
+held-out scenario stops and starts one `postgres` container the same way. Both are local fault
+controls. Nothing they show transfers to the same worker running as an Amazon ECS service behind
+a managed queue and a managed database:
 
-One further honest limit that spans all four codes: LocalStack SQS, Compose networking, and a single
-host give no evidence about the IAM task role an ECS task would need to call SQS, about
-cross-Availability-Zone behaviour, or about what the same fault costs in a managed account.
+- ECS-01: Task placement is unproven. Compose ran exactly one worker on one host with no
+  placement strategy, no bin-packing across instances, no placement constraints, and no capacity
+  provider; nothing here shows that a replacement task could be placed at all when the cluster
+  is at capacity, or where it would land.
+- ECS-02: Service-scheduler replacement is unproven. `docker compose start worker` was an
+  operator (or script) action taken on a known-stopped container. An ECS service scheduler
+  notices a stopped or unhealthy task itself and launches a replacement to hold `desiredCount`,
+  with its own detection latency, launch time, and back-off on repeated failures — none of which
+  this lab measured, and none of which a `restart: unless-stopped` policy on one host stands in
+  for.
+- ECS-03: Autoscaling is unproven. The five-message backlog was drained by the one worker that
+  came back, serially, at the supplied 250 ms model latency. ECS Service Auto Scaling driven by
+  queue depth (or backlog per task) would add consumers under a real backlog; how many, how fast,
+  and whether several concurrent consumers still recover every reading exactly once was never
+  exercised here.
+- ECS-04: Health-check grace and load-balancer behaviour are unproven. Compose's healthcheck and
+  `up --wait` gate one container's readiness on one host. They are not an ECS
+  `healthCheckGracePeriodSeconds`, not an ALB target-group health check, and not target
+  deregistration draining for the API; a task killed during warm-up, or traffic routed to a
+  target still draining, cannot happen in this topology and so cannot be observed in it.
+- ECS-05: Multi-AZ failover is unproven. `docker compose stop postgres` and `start postgres` on
+  one host is not an RDS Multi-AZ failover, and a single-host worker restart says nothing about
+  rescheduling a task into another Availability Zone when one is lost.
